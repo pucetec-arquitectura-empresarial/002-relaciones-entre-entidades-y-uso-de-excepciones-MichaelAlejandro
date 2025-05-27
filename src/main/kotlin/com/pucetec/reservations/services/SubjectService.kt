@@ -21,26 +21,49 @@ class SubjectService(
     private val subjectMapper: SubjectMapper,
 ) {
     fun createSubject(request: SubjectRequest): SubjectResponse {
-        // TODO: Implement the logic to create a subject
-        // Step 1: Find the professor by ID
-        // Step 2: Create a new Subject entity
-        // Step 3: Save the subject to the repository
-        // Step 4: Return the created subject response
-        // Note: This is a placeholder implementation
-        throw NotImplementedError("Not yet implemented")
+        val professor = professorRepository.findById(request.professorId)
+            .orElseThrow { ProfessorNotFoundException("Professor with id ${request.professorId} not found") }
+
+        val subject = Subject(
+            name = request.name,
+            semester = request.semester,
+            professor = professor,
+        )
+
+        val savedSubject = subjectRepository.save(subject)
+
+        return subjectMapper.toResponse(savedSubject)
     }
 
     fun enrollStudent(subjectId: Long, studentId: Long): SubjectResponse {
-        // TODO: Implement the logic to enroll a student in a subject
-        // Step 1: Find the subject by ID
-        // Step 2: Find the student by ID
-        // Step 3: Check if the student is already enrolled in the subject
-        // Step 4: If not, enroll the student in the subject
-        // Step 5: Return the updated subject response
-        // Note: This is a placeholder implementation
-        throw NotImplementedError("Not yet implemented")
+        val subject = subjectRepository.findById(subjectId)
+            .orElseThrow { SubjectNotFoundException("Subject with id $subjectId not found") }
+
+        val student = studentRepository.findById(studentId)
+            .orElseThrow { StudentNotFoundException("Student with id $studentId not found") }
+
+        if (subject.students.contains(student)) {
+            throw StudentAlreadyEnrolledException("Student with id $studentId is already enrolled in the subject")
+        }
+
+        subject.students.add(student)
+        val updatedSubject = subjectRepository.save(subject)
+
+        return subjectMapper.toResponse(updatedSubject)
     }
 
     fun listSubjects(): List<SubjectResponse> =
         subjectMapper.toResponseList(subjectRepository.findAll())
+
+    fun getSubjectById(subjectId: Long): SubjectResponse {
+        val subject = subjectRepository.findById(subjectId)
+            .orElseThrow { SubjectNotFoundException("Subject with id $subjectId not found") }
+        return subjectMapper.toResponse(subject)
+    }
+
+    fun deleteSubject(subjectId: Long) {
+        val subject = subjectRepository.findById(subjectId)
+            .orElseThrow { SubjectNotFoundException("Subject with id $subjectId not found") }
+        subjectRepository.delete(subject)
+    }
 }
